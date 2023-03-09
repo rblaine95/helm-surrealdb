@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "surrealdb.fullname" . }}
+  labels:
+    {{- include "surrealdb.labels" . | nindent 4 }}
+spec:
+  {{ if .Values.persistence.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- else }}
+  replicas: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "surrealdb.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "surrealdb.fullname" . }}-headless
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "surrealdb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.pullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ tpl . $ }}
+        {{- end }}
+      {{- end }}
+      serviceAccountName: {{ include "surrealdb.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: surrealdb
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /surreal
+          args:
+            - start
+            - --bind "0.0.0.0:{{ default 8000 .Values.service.port }}"
+            - --log {{ default "info" .Values.config.logLevel }}
+            {{- range .Values.extraArgs }}
+            - {{ tpl . $ }}
+            {{- end }}
+          env:
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "surrealdb.fullname" . }}
+                  key: username
+            - name: PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "surrealdb.fullname" . }}
+                  key: password
+            {{- with .Values.extraEnv }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
+          {{- if .Values.persistence.enabled }}
+            {{- if .Values.persistence.encryptionKey }}
+            - name: KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "surrealdb.fullname" . }}
+                  key: encryptionKey
+            {{- end }}
+            - name: DB_PATH
+              value: "file://{{ .Values.persistence.mountPath }}/surreal.db"
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ default 8000 .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ default "" .Values.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}
