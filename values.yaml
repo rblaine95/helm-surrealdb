@@ -17,7 +17,8 @@ config:
 extraEnv: []
 
 extraArgs:
-  - --addr "0.0.0.0/0"
+  - --addr
+  - 0.0.0.0/0
 
 persistence:
   enabled: true

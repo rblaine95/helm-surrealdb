@@ -43,8 +43,10 @@ spec:
             - /surreal
           args:
             - start
-            - --bind "0.0.0.0:{{ default 8000 .Values.service.port }}"
-            - --log {{ default "info" .Values.config.logLevel }}
+            - --bind
+            - 0.0.0.0:{{ default 8000 .Values.service.port }}
+            - --log
+            - {{ default "info" .Values.config.logLevel }}
             {{- range .Values.extraArgs }}
             - {{ tpl . $ }}
             {{- end }}
