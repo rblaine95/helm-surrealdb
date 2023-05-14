@@ -22,4 +22,4 @@ kubeVersion: ">= 1.19.x-x"
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: 1.0.0-beta.8
+appVersion: 1.0.0-beta.9
