@@ -1,0 +1,15 @@
+name: Lint & Template
+
+on: [workflow_dispatch, push]
+
+jobs:
+  lint-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: azure/setup-helm@v3
+        with:
+          token: ${{ github.token }}
+      - run: helm version
+      - run: helm lint .
+      - run: helm template surrealdb .
