@@ -1,6 +1,7 @@
 apiVersion: v2
 name: surrealdb
 description: A Helm chart to deploy SurrealDB in Kubernetes
+icon: https://surrealdb.com/static/img/home/logo@2x-1b3865ba0026de3b8308ecc3b5ef777d.png
 
 # A chart can be either an 'application' or a 'library' chart.
 #
